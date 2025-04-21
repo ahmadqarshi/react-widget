@@ -1,0 +1,66 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies for widget
+        run: |
+          cd widget-src
+          npm ci
+      
+      - name: Build widget
+        run: |
+          cd widget-src
+          npm run build
+      
+      - name: Install dependencies for backend
+        run: |
+          cd backend
+          npm ci
+      
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_KEY }}" > ~/.ssh/ec2.pem
+          chmod 600 ~/.ssh/ec2.pem
+          echo -e "Host ec2\n\tHostName ${{ secrets.EC2_HOST }}\n\tUser ${{ secrets.EC2_USERNAME }}\n\tIdentityFile ~/.ssh/ec2.pem\n\tStrictHostKeyChecking no" > ~/.ssh/config
+      
+      - name: Deploy to EC2
+        run: |
+          # Create a temporary directory for deployment
+          mkdir -p deploy
+          
+          # Copy backend files
+          cp -r backend/* deploy/
+          
+          # Copy the built widget file
+          cp widget-src/dist/assistant.js deploy/public/
+          
+          # Create a simple deployment script
+          echo '#!/bin/bash
+          cd ${{ secrets.EC2_REPO_PATH }}
+          npm ci
+          pm2 restart server || pm2 start server.js --name "react-widget"' > deploy/deploy.sh
+          chmod +x deploy/deploy.sh
+          
+          # Deploy to EC2
+          scp -r deploy/* ec2:${{ secrets.EC2_REPO_PATH }}/
+          
+          # Execute deployment script on EC2
+          ssh ec2 "cd ${{ secrets.EC2_REPO_PATH }} && chmod +x deploy.sh && ./deploy.sh" 
