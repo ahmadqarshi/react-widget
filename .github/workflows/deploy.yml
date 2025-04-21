@@ -66,8 +66,9 @@ jobs:
           sudo pm2 stop server || true
           sudo pm2 delete server || true
           
-          # Start the server with sudo to allow binding to port 80
-          sudo pm2 start server.js --name "react-widget"
+          # Start the server with sudo to allow binding to port 80 in production
+          # Set NODE_ENV to production to use port 80
+          sudo NODE_ENV=production pm2 start server.js --name "react-widget"
           
           # Make sure the server is running
           sudo pm2 save
