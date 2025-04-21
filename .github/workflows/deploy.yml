@@ -55,7 +55,28 @@ jobs:
           echo '#!/bin/bash
           cd ${{ secrets.EC2_REPO_PATH }}
           npm ci
-          pm2 restart server || pm2 start server.js --name "react-widget"' > deploy/deploy.sh
+          
+          # Check if PM2 is installed, if not install it
+          if ! command -v pm2 &> /dev/null; then
+            echo "Installing PM2..."
+            sudo npm install -g pm2
+          fi
+          
+          # Stop any existing server
+          sudo pm2 stop server || true
+          sudo pm2 delete server || true
+          
+          # Start the server with sudo to allow binding to port 80
+          sudo pm2 start server.js --name "react-widget"
+          
+          # Make sure the server is running
+          sudo pm2 save
+          
+          # Check if the server is running
+          sudo pm2 status
+          
+          # Print the URL where the widget can be accessed
+          echo "Widget should be accessible at: http://${{ secrets.EC2_HOST }}/assistant.js"' > deploy/deploy.sh
           chmod +x deploy/deploy.sh
           
           # Deploy to EC2

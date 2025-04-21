@@ -1,13 +1,17 @@
-
 import express from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import cors from 'cors'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
-const PORT = process.env.PORT || 3000
+// Use port 80 instead of 3000 to match the open inbound rule
+const PORT = process.env.PORT || 80
+
+// Enable CORS for all routes
+app.use(cors())
 
 // Serve assistant.js as static file
 app.use(express.static(path.join(__dirname, 'public')))
@@ -20,6 +24,7 @@ app.post('/ask', express.json(), async (req, res) => {
   res.json({ answer })
 })
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
+// Listen on all network interfaces, not just localhost
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`)
 })
