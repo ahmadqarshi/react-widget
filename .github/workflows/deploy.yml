@@ -48,8 +48,8 @@ jobs:
           # Copy backend files
           cp -r backend/* deploy/
           
-          # Copy the built widget file
-          cp widget-src/dist/assistant.js deploy/public/
+          # The widget is already built to backend/public/assistant.js by Vite
+          # No need to copy it separately
           
           # Create a simple deployment script
           echo '#!/bin/bash
